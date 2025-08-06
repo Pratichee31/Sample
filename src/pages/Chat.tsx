@@ -5,6 +5,7 @@ import { ChatInput } from "@/components/ChatInput";
 import { TypingIndicator } from "@/components/TypingIndicator";
 import { WelcomeScreen } from "@/components/WelcomeScreen";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function Chat() {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -20,23 +21,19 @@ export default function Chat() {
     scrollToBottom();
   }, [messages, isTyping]);
 
-  const generateResponse = async (userMessage: string, generateImage: boolean = false): Promise<string> => {
-    // Simulate API call - Replace with actual Gemini API integration
-    await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
-    
-    if (generateImage) {
-      return "I'd generate an image here, but you'll need to integrate with Gemini's image generation API. For now, here's a description of what I would create: " + userMessage;
+  const generateResponse = async (userMessage: string, generateImage: boolean = false): Promise<{ response: string; imageUrl?: string }> => {
+    try {
+      const { data, error } = await supabase.functions.invoke('chat-with-gemini', {
+        body: { message: userMessage, generateImage }
+      });
+
+      if (error) throw error;
+      
+      return data;
+    } catch (error) {
+      console.error('Error calling Gemini API:', error);
+      throw new Error('Failed to get AI response');
     }
-    
-    // Simulate different types of responses
-    const responses = [
-      `That's an interesting question about "${userMessage}". Let me provide you with a detailed response...`,
-      `Based on your message "${userMessage}", here are some thoughts...`,
-      `I understand you're asking about "${userMessage}". Here's what I can tell you...`,
-    ];
-    
-    return responses[Math.floor(Math.random() * responses.length)] + 
-           " This is a simulated response. To get real AI responses, you'll need to integrate with the Gemini API and connect to Supabase for data persistence.";
   };
 
   const handleSendMessage = async (content: string, generateImage: boolean = false) => {
@@ -56,17 +53,17 @@ export default function Chat() {
 
     try {
       // Generate AI response
-      const aiResponse = await generateResponse(content, generateImage);
+      const aiData = await generateResponse(content, generateImage);
       
       setIsTyping(false);
       
       // Add AI message
       const aiMessage: Message = {
         id: crypto.randomUUID(),
-        content: aiResponse,
+        content: aiData.response,
         role: 'assistant',
         timestamp: new Date(),
-        ...(generateImage && { imageUrl: "https://via.placeholder.com/400x300?text=Generated+Image" })
+        ...(aiData.imageUrl && { imageUrl: aiData.imageUrl })
       };
 
       setMessages(prev => [...prev, aiMessage]);
