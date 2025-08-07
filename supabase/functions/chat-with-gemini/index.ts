@@ -20,37 +20,34 @@ serve(async (req) => {
     }
 
     if (generateImage) {
-      // Use Gemini for image generation
-      const imageResponse = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            contents: [{
-              parts: [{
-                text: `Generate a detailed, creative image description based on this prompt: "${message}". Make it vivid and detailed.`
-              }]
-            }],
-            generationConfig: {
-              temperature: 0.7,
-              maxOutputTokens: 1000,
-            }
-          })
+      // Use Pollinations AI for free image generation
+      try {
+        const imagePrompt = encodeURIComponent(message);
+        const imageUrl = `https://image.pollinations.ai/prompt/${imagePrompt}?width=512&height=512&nologo=true`;
+        
+        // Test if the image URL is accessible
+        const imageResponse = await fetch(imageUrl, { method: 'HEAD' });
+        
+        if (imageResponse.ok) {
+          return new Response(JSON.stringify({ 
+            response: `I've generated an image based on your prompt: "${message}"`,
+            imageUrl: imageUrl
+          }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        } else {
+          throw new Error('Image generation failed');
         }
-      );
-
-      const imageData = await imageResponse.json();
-      const description = imageData.candidates?.[0]?.content?.parts?.[0]?.text || "Generated image description";
-      
-      return new Response(JSON.stringify({ 
-        response: `I've created an image based on your prompt: "${message}". ${description}`,
-        imageUrl: `https://via.placeholder.com/400x300/6366f1/ffffff?text=${encodeURIComponent(message.slice(0, 20))}`
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      } catch (error) {
+        console.error('Image generation error:', error);
+        // Fallback to a placeholder with better styling
+        return new Response(JSON.stringify({ 
+          response: `I couldn't generate an image at the moment, but here's a visual placeholder for your prompt: "${message}"`,
+          imageUrl: `https://via.placeholder.com/512x512/6366f1/ffffff?text=${encodeURIComponent(message.slice(0, 30))}`
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
     } else {
       // Use Gemini for text generation
       const response = await fetch(
