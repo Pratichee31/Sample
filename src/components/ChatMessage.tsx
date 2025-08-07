@@ -41,11 +41,22 @@ export const ChatMessage = ({ message, isAnimating = false }: ChatMessageProps) 
             : "bg-message-assistant text-message-assistant-foreground"
         )}>
           {message.imageUrl && (
-            <img 
-              src={message.imageUrl} 
-              alt="Generated content"
-              className="rounded-xl mb-2 max-w-full h-auto"
-            />
+            <div className="mb-2">
+              <img 
+                src={message.imageUrl} 
+                alt="Generated content"
+                className="rounded-xl max-w-full h-auto border border-border"
+                onLoad={() => console.log('Image loaded successfully:', message.imageUrl)}
+                onError={(e) => {
+                  console.error('Image failed to load:', message.imageUrl, e);
+                  e.currentTarget.style.display = 'none';
+                }}
+                style={{ maxHeight: '400px' }}
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Image URL: {message.imageUrl}
+              </p>
+            </div>
           )}
           <p className="text-sm leading-relaxed whitespace-pre-wrap">
             {message.content}
