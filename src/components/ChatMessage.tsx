@@ -45,17 +45,28 @@ export const ChatMessage = ({ message, isAnimating = false }: ChatMessageProps) 
               <img 
                 src={message.imageUrl} 
                 alt="Generated content"
-                className="rounded-xl max-w-full h-auto border border-border"
-                onLoad={() => console.log('Image loaded successfully:', message.imageUrl)}
-                onError={(e) => {
-                  console.error('Image failed to load:', message.imageUrl, e);
-                  e.currentTarget.style.display = 'none';
+                className="rounded-xl max-w-full h-auto border border-border bg-muted"
+                onLoad={(e) => {
+                  console.log('Image loaded successfully:', message.imageUrl);
+                  e.currentTarget.style.backgroundColor = 'transparent';
                 }}
-                style={{ maxHeight: '400px' }}
+                onError={(e) => {
+                  console.error('Image failed to load:', message.imageUrl);
+                  const target = e.currentTarget;
+                  target.style.display = 'none';
+                  // Show fallback text
+                  const fallback = document.createElement('div');
+                  fallback.className = 'p-4 bg-muted rounded-xl text-center text-muted-foreground text-sm';
+                  fallback.textContent = 'Image failed to load. The service might be temporarily unavailable.';
+                  target.parentNode?.insertBefore(fallback, target);
+                }}
+                style={{ 
+                  maxHeight: '400px',
+                  minHeight: '100px',
+                  backgroundColor: 'hsl(var(--muted))'
+                }}
+                loading="lazy"
               />
-              <p className="text-xs text-muted-foreground mt-1">
-                Image URL: {message.imageUrl}
-              </p>
             </div>
           )}
           <p className="text-sm leading-relaxed whitespace-pre-wrap">
